@@ -2,8 +2,6 @@ package in.co.ismdhanbad.myapplication;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -13,10 +11,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -28,32 +27,37 @@ public class MainActivity
         extends AppCompatActivity
         implements View.OnClickListener,View.OnLongClickListener {
 
+    //objects
     private Button createHotspot;
     private Button connect;
-    private Button getList;
+    private Button reset;
+    private ImageView i1,i2,i3,i4,i5,i6,i7,ii;
+    private CountDownTimer countDownTimer;
+
+    //firebase services
     private FirebaseDatabase firebaseDatabase;
     private DatabaseReference databaseReference;
     private ChildEventListener childEventListener;
-    private int i = 0,z= 0,pi=0,pn=0;
-    int pc = Color.argb(150,246,238,25);
-    ImageView i1,i2,i3,i4,i5,i6,i7,ii;
-    int[][] n = new int[8][2];
+    private ChildEventListener mChildEventListener;
 
-    String safe,unsafe;
-    TextView saf,unsaf,sl,ul;
-    Button bc;
-    private CountDownTimer countDownTimer;
+    //variables
+    private int i = 0,z= 0,pi=0,pn=0,y;
+    private int pc = y = Color.argb(150,246,238,25);
+    private int r = Color.argb(150,250,0,0);
+    private int g = Color.argb(150,0,250,0);
+    private int[][] n = new int[8][2];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        firebaseDatabase = firebaseDatabase.getInstance();
+        firebaseDatabase = FirebaseDatabase.getInstance();
         databaseReference = firebaseDatabase.getReference().child("Warn");
 
         createHotspot = (Button) findViewById(R.id.createHotspotBtn);
         connect  = (Button) findViewById(R.id.connectBtn);
+        reset = (Button) findViewById(R.id.resetBtn);
 
         i1=(ImageView) findViewById(R.id.i1);
         i2=(ImageView) findViewById(R.id.i2);
@@ -72,24 +76,21 @@ public class MainActivity
         i1.setOnLongClickListener(this);i2.setOnLongClickListener(this);i3.setOnLongClickListener(this);i4.setOnLongClickListener(this);i5.setOnLongClickListener(this);
         i6.setOnLongClickListener(this);i7.setOnLongClickListener(this);
 
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if(!wifiManager.isWifiEnabled())
-            wifiManager.setWifiEnabled(true);
+//        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+//        if(!wifiManager.isWifiEnabled())
+//            wifiManager.setWifiEnabled(true);
 
         for(int j=1;j<=7;j++){
             n[j][0] = 0;
             n[j][1] = pc;
         }
 
+        Log.d("yyyyyyy", y + "");
+
         createHotspot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int x = pi*2;
-                if(n[pi][0]==-1){
-                    x--;
-                }
-                pi = 0;
-                configApState(MainActivity.this,x);
+                attachUpdateListener();
             }
         });
 
@@ -100,122 +101,206 @@ public class MainActivity
             }
         });
 
-        receiveBrodcast();
+        attachSetListener();
+
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                attachResetListener();
+            }
+        });
+
+        //receiveBrodcast();
 
 
     }
 
-    private void receiveBrodcast(){
-
-        z = 0;
-
-        countDownTimer = new CountDownTimer(300000, 10000) {
-
-            public void onTick(long millisUntilFinished) {
-                Log.d("NetworkCheckReceiver", "connectedadasdsd"+z);
-//                z++;
-                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if(!wifiManager.isWifiEnabled())
-                    wifiManager.setWifiEnabled(true);
-                ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-
-                if (!mWifi.isConnected()) {
-                    z ++;
-                    if(z>12)
-                        z=1;
-                    Log.d("NetworkCheckReceiver", "connected"+z);
-                    WifiConfiguration wifiConfig = new WifiConfiguration();
-                    wifiConfig.SSID = String.format("\"%s\"", "Nexus" + z);
-                    wifiConfig.preSharedKey = String.format("\"%s\"", "12345678");
-
-                    int netId = wifiManager.addNetwork(wifiConfig);
-                    wifiManager.disconnect();
-                    wifiManager.enableNetwork(netId, true);
-                    wifiManager.reconnect();
-                }
-                else{
-                    Log.d("NetworkCheckReceiver", "disconnected");
-                    countDownTimer.cancel();
-                    countDownTimer.onFinish();
-                    setColor(z);
-                    configApState(MainActivity.this,z);
-                }
+    private void attachResetListener(){
+        if(childEventListener != null) {
+            databaseReference.removeEventListener(childEventListener);
+            childEventListener = null;
+        }
+        childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                Message message1 = dataSnapshot.getValue(Message.class);
+                message1.setColor(-1762202087);
+                databaseReference.child(dataSnapshot.getKey()).setValue(message1);
             }
 
-            public void onFinish() {
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
             }
         };
-        countDownTimer.start();
+        databaseReference.addChildEventListener(childEventListener);
     }
 
+    private void attachSetListener(){
+        if(mChildEventListener != null) {
+            databaseReference.removeEventListener(mChildEventListener);
+            mChildEventListener = null;
+        }
+        mChildEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                Message message1 = dataSnapshot.getValue(Message.class);
+                setColor(message1.getRoom(),message1.getColor());
+            }
 
-    public void setColor(int i){
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                Message message1 = dataSnapshot.getValue(Message.class);
+                setColor(message1.getRoom(),message1.getColor());
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        };
+        databaseReference.addChildEventListener(mChildEventListener);
+    }
+
+    private void attachUpdateListener(){
+        if(childEventListener != null) {
+            databaseReference.removeEventListener(childEventListener);
+            childEventListener = null;
+        }
+        childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                Message message1 = dataSnapshot.getValue(Message.class);
+                if(message1.getRoom() == pi) {
+                    message1.setColor(n[pi][1]);
+                    pi = 0;
+                }
+                databaseReference.child(dataSnapshot.getKey()).setValue(message1);
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        };
+        databaseReference.addChildEventListener(childEventListener);
+
+    }
+
+//    private void receiveBrodcast(){
+//
+//        z = 0;
+//
+//        countDownTimer = new CountDownTimer(300000, 10000) {
+//
+//            public void onTick(long millisUntilFinished) {
+//                Log.d("NetworkCheckReceiver", "connectedadasdsd"+z);
+////                z++;
+//                WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+//                if(!wifiManager.isWifiEnabled())
+//                    wifiManager.setWifiEnabled(true);
+//                ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+//                NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+//
+//                if (!mWifi.isConnected()) {
+//                    z ++;
+//                    if(z>12)
+//                        z=1;
+//                    Log.d("NetworkCheckReceiver", "connected"+z);
+//                    WifiConfiguration wifiConfig = new WifiConfiguration();
+//                    wifiConfig.SSID = String.format("\"%s\"", "Nexus" + z);
+//                    wifiConfig.preSharedKey = String.format("\"%s\"", "12345678");
+//
+//                    int netId = wifiManager.addNetwork(wifiConfig);
+//                    wifiManager.disconnect();
+//                    wifiManager.enableNetwork(netId, true);
+//                    wifiManager.reconnect();
+//                }
+//                else{
+//                    Log.d("NetworkCheckReceiver", "disconnected");
+//                    countDownTimer.cancel();
+//                    countDownTimer.onFinish();
+//                    setColor(z);
+//                    configApState(MainActivity.this,z);
+//                }
+//            }
+//
+//            public void onFinish() {
+//
+//            }
+//        };
+//        countDownTimer.start();
+//    }
+
+
+    public void setColor(int i, int col){
         switch(i){
             case 1:
-                i1.setColorFilter(Color.argb(150,250,0,0));
+                i1.setColorFilter(col);
                 n[1][0]=1;
-                n[1][1]=Color.argb(150,250,0,0);
+                n[1][1]=col;
                 break;
             case 2:
-                i1.setColorFilter(Color.argb(150,0,250,0));
-                n[1][0]=1;
-                n[1][1]=Color.argb(150,0,250,0);
+                i2.setColorFilter(col);
+                i4.setColorFilter(col);
+                n[2][1]=col;
                 break;
             case 3:
-                i2.setColorFilter(Color.argb(150,250,0,0));
-                i4.setColorFilter(Color.argb(150,250,0,0));
-                n[2][0]=1;
-                n[2][1]=Color.argb(150,250,0,0);
+                i3.setColorFilter(col);
+                n[3][1]=col;
                 break;
             case 4:
-                i2.setColorFilter(Color.argb(150,0,250,0));
-                i4.setColorFilter(Color.argb(150,0,250,0));
-                n[2][0]=1;
-                n[2][1]=Color.argb(150,0,250,0);
+                i5.setColorFilter(col);
+                n[4][1]=col;
                 break;
             case 5:
-                i3.setColorFilter(Color.argb(150,250,0,0));
-                n[3][0]=1;
-                n[3][1]=Color.argb(150,250,0,0);
+                i6.setColorFilter(col);
+                n[5][1]=col;
                 break;
             case 6:
-                i3.setColorFilter(Color.argb(150,0,250,0));
-                n[3][0]=1;
-                n[3][1]=Color.argb(150,0,250,0);
+                i7.setColorFilter(col);
+                n[6][1]=col;
                 break;
-            case 7:
-                i5.setColorFilter(Color.argb(150,250,0,0));
-                n[4][0]=1;
-                n[4][1]=Color.argb(150,250,0,0);
-                break;
-            case 8:
-                i5.setColorFilter(Color.argb(150,0,250,0));
-                n[4][0]=1;
-                n[4][1]=Color.argb(150,0,250,0);
-                break;
-            case 9:
-                i6.setColorFilter(Color.argb(150,250,0,0));
-                n[5][0]=1;
-                n[5][1]=Color.argb(150,250,0,0);
-                break;
-            case 10:
-                i6.setColorFilter(Color.argb(150,0,250,0));
-                n[5][0]=1;
-                n[5][1]=Color.argb(150,0,250,0);
-                break;
-            case 11:
-                i7.setColorFilter(Color.argb(150,250,0,0));
-                n[6][0]=1;
-                n[6][1]=Color.argb(150,250,0,0);
-                break;
-            case 12:
-                i7.setColorFilter(Color.argb(150,0,250,0));
-                n[6][0]=1;
-                n[6][1]=Color.argb(150,0,250,0);
-                break;
-
         }
     }
 
@@ -315,7 +400,7 @@ public class MainActivity
                 pi=1;
                 pn=pn1;
                 pc=n[1][1];
-                n[1][1]=Color.argb(150,250,0,0);
+                n[1][1]=r;
                 break;
             case R.id.i2:
                 i2.setColorFilter(Color.argb(150, 250, 0, 0));i4.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -334,7 +419,7 @@ public class MainActivity
                 pi=2;
                 pn=pn1;
                 pc=n[2][1];
-                n[2][1]=Color.argb(150,250,0,0);
+                n[2][1]=r;
                 break;
             case R.id.i3:
                 i3.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -353,7 +438,7 @@ public class MainActivity
                 pi=3;
                 pn=pn1;
                 pc=n[3][1];
-                n[3][1]=Color.argb(150,250,0,0);
+                n[3][1]=r;
                 break;
             case R.id.i4:
                 i4.setColorFilter(Color.argb(150, 250, 0, 0));i2.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -372,7 +457,7 @@ public class MainActivity
                 pi=2;
                 pn=pn1;
                 pc=n[2][1];
-                n[2][1]=Color.argb(150,250,0,0);
+                n[2][1]=r;
                 break;
             case R.id.i5:
                 i5.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -392,7 +477,7 @@ public class MainActivity
                 pi=4;
                 pn=pn1;
                 pc=n[4][1];
-                n[4][1]=Color.argb(150,250,0,0);
+                n[4][1]=r;
                 break;
             case R.id.i6:
                 i6.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -411,7 +496,7 @@ public class MainActivity
                 pi=5;
                 pn=pn1;
                 pc=n[5][1];
-                n[5][1]=Color.argb(150,250,0,0);
+                n[5][1]=r;
                 break;
             case R.id.i7:
                 i7.setColorFilter(Color.argb(150, 250, 0, 0));
@@ -430,7 +515,7 @@ public class MainActivity
                 pi=6;
                 pn=pn1;
                 pc=n[6][1];
-                n[6][1]=Color.argb(150,250,0,0);
+                n[6][1]=r;
                 break;
 
         }
@@ -440,7 +525,7 @@ public class MainActivity
     public boolean onLongClick(View v) {
         switch(v.getId()){
             case R.id.i1:
-                i1.setColorFilter(Color.argb(150,0,250,0));
+                i1.setColorFilter(g);
                 int pn1=n[1][0];
                 n[1][0]=1;
                 if(pi!=0){
@@ -455,11 +540,11 @@ public class MainActivity
                 pi=1;
                 pn=pn1;
                 pc=n[1][1];
-                n[1][1]=Color.argb(150,0,250,0);
+                n[1][1]=g;
                 break;
             case R.id.i2:
-                i2.setColorFilter(Color.argb(150,0,250,0));
-                i4.setColorFilter(Color.argb(150,0,250,0));
+                i2.setColorFilter(g);
+                i4.setColorFilter(g);
                 pn1=n[2][0];
                 n[2][0]=1;
                 if(pi!=0){
@@ -474,10 +559,10 @@ public class MainActivity
                 pi=2;
                 pn=pn1;
                 pc=n[2][1];
-                n[2][1]=Color.argb(150,0,250,0);
+                n[2][1]=g;
                 break;
             case R.id.i3:
-                i3.setColorFilter(Color.argb(150,0,250,0));
+                i3.setColorFilter(g);
                 pn1=n[3][0];
                 n[3][0]=1;
                 if(pi!=0){
@@ -492,11 +577,11 @@ public class MainActivity
                 pi=3;
                 pn=pn1;
                 pc=n[3][1];
-                n[3][1]=Color.argb(150,0,250,0);
+                n[3][1]=g;
                 break;
             case R.id.i4:
-                i4.setColorFilter(Color.argb(150,0,250,0));
-                i2.setColorFilter(Color.argb(150,0,250,0));
+                i4.setColorFilter(g);
+                i2.setColorFilter(g);
                 pn1=n[2][0];
                 n[2][0]=1;
                 if(pi!=0){
@@ -511,10 +596,10 @@ public class MainActivity
                 pi=2;
                 pn=pn1;
                 pc=n[2][1];
-                n[2][1]=Color.argb(150,0,250,0);
+                n[2][1]=g;
                 break;
             case R.id.i5:
-                i5.setColorFilter(Color.argb(150,0,250,0));
+                i5.setColorFilter(g);
                 pn1=n[4][0];
                 n[4][0]=1;
                 if(pi!=0){
@@ -529,10 +614,10 @@ public class MainActivity
                 pi=4;
                 pn=pn1;
                 pc=n[4][1];
-                n[4][1]=Color.argb(150,0,250,0);
+                n[4][1]=g;
                 break;
             case R.id.i6:
-                i6.setColorFilter(Color.argb(150,0,250,0));
+                i6.setColorFilter(g);
                 pn1=n[5][0];
                 n[5][0]=1;
                 if(pi!=0){
@@ -547,10 +632,10 @@ public class MainActivity
                 pi=5;
                 pn=pn1;
                 pc=n[5][1];
-                n[5][1]=Color.argb(150,0,250,0);
+                n[5][1]=g;
                 break;
             case R.id.i7:
-                i7.setColorFilter(Color.argb(150,0,250,0));
+                i7.setColorFilter(g);
                 pn1=n[6][0];
                 n[6][0]=1;
                 if(pi!=0){
@@ -565,7 +650,7 @@ public class MainActivity
                 pi=6;
                 pn=pn1;
                 pc=n[6][1];
-                n[6][1]=Color.argb(150,0,250,0);
+                n[6][1]=g;
                 break;
 
         }
